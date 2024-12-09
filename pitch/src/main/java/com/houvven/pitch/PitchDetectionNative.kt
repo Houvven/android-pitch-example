@@ -10,6 +10,7 @@ class PitchDetectionNative {
 
     external fun startPitchDetection(callback: PitchCallback): Boolean
     external fun stopPitchDetection(): Boolean
+    external fun isRunning(): Boolean
 
     companion object {
         init {

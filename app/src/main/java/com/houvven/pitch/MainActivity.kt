@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import java.lang.Thread.sleep
+import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
 
@@ -44,6 +46,7 @@ private fun HomeScreen(
     val permissionState = rememberPermissionState(permission = Manifest.permission.RECORD_AUDIO)
     var currentPitch by remember { mutableFloatStateOf(0f) }
     val animatedPitch by animateFloatAsState(targetValue = currentPitch, label = "Pitch")
+    var isRunning by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier,
@@ -65,23 +68,29 @@ private fun HomeScreen(
         )
 
         Spacer(Modifier.height(32.dp))
-
-        Row(horizontalArrangement = Arrangement.Center) {
-            Button(onClick = {
-                pitchDetection.startPitchDetectionAsync(object : PitchDetectionNative.PitchCallback {
-                    override fun onPitchDetected(pitch: Float) {
-                        currentPitch = pitch
+        Button(onClick = {
+            if (isRunning) {
+                pitchDetection.stopPitchDetection()
+                isRunning = pitchDetection.isRunning()
+            } else {
+                pitchDetection.startPitchDetectionAsync(
+                    object : PitchDetectionNative.PitchCallback {
+                        override fun onPitchDetected(pitch: Float) {
+                            currentPitch = pitch
+                        }
                     }
-                })
-            }) {
-                Text(text = "Run")
+                )
+                thread {
+                    repeat(5) {
+                        isRunning = pitchDetection.isRunning()
+                        if (isRunning == true) return@repeat
+                        sleep(500)
+                    }
+                }
             }
-
-            Spacer(Modifier.width(8.dp))
-
-            Button(onClick = { pitchDetection.stopPitchDetection() }) {
-                Text(text = "Stop")
-            }
+        }) {
+            val displayText = if (!isRunning) "Run" else "Stop"
+            Text(text = displayText)
         }
     }
 }
